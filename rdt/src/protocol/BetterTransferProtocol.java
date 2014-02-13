@@ -86,7 +86,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		if (receivedPacket != null) {
 			ackBit = receivedPacket.GetData()[0];
 		}
-		
+
 		if (sentBit == ackBit) {
 
 			try {
@@ -98,12 +98,12 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 
 				if (readSize >= 0) {
 
-					if (sentBit == (byte)0){
+					if (sentBit == (byte) 0) {
 						sentBit = 1;
-					}else {
+					} else {
 						sentBit = 0;
 					}
-					
+
 					sendData[0] = sentBit;
 
 					for (int i = 0; i < readData.length; i++) {
@@ -116,7 +116,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 						System.out.println("Failure transmitting");
 						return true;
 					}
-					
+
 					// Print how far along we are
 					bytesSent += readSize;
 
@@ -152,8 +152,6 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 					return true;
 				}
 
-				
-
 			} catch (IOException e) {
 				// We encountered an error while reading the file. Stop work.
 				System.out.println("Error reading the file: " + e.getMessage());
@@ -172,39 +170,40 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	private boolean ReceiveData() {
 		// Receive a data packet
 		Packet receivedPacket = networkLayer.Receive();
-	
-		if (receivedPacket != null) {
-			
-			ackBit = sentBit;
-			ACK = ackBit;
-			
-			byte[] data = receivedPacket.GetData();
-			networkLayer.Transmit(new Packet(new byte[] { ACK }));
+		if (sentBit != ackBit) {
 
-			// If the data packet was empty, we are done
-			if (data.length == 0) {
-				try {
-					// Close the file
-					outputStream.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+			if (receivedPacket != null) {
+
+				ackBit = sentBit;
+				ACK = ackBit;
+
+				byte[] data = receivedPacket.GetData();
+				networkLayer.Transmit(new Packet(new byte[] { ACK }));
+
+				// If the data packet was empty, we are done
+				if (data.length == 0) {
+					try {
+						// Close the file
+						outputStream.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
+					// Signal that work is done
+					return true;
 				}
 
-				// Signal that work is done
-				return true;
-			}
-
-			// Write the data to the output file
-			try {
-				outputStream.write(data, 0, data.length);
-				outputStream.flush();
-			} catch (IOException e) {
-				System.out
-						.println("Failure writing to file: " + e.getMessage());
-				return true;
+				// Write the data to the output file
+				try {
+					outputStream.write(data, 0, data.length);
+					outputStream.flush();
+				} catch (IOException e) {
+					System.out.println("Failure writing to file: "
+							+ e.getMessage());
+					return true;
+				}
 			}
 		}
-
 		return false;
 	}
 
