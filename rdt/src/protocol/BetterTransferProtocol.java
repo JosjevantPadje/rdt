@@ -170,11 +170,10 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	private boolean ReceiveData() {
 		// Receive a data packet
 		Packet receivedPacket = networkLayer.Receive();
-		sentBit = receivedPacket.GetData()[0];
-		
-		if (sentBit != ackBit) {
+		if (receivedPacket != null) {
+			sentBit = receivedPacket.GetData()[0];
 
-			if (receivedPacket != null) {
+			if (sentBit != ackBit) {
 
 				ackBit = sentBit;
 				ACK = ackBit;
