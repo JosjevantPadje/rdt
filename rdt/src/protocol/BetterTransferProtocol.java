@@ -13,6 +13,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	private TransferMode transferMode;
 	FileInputStream inputStream;
 	FileOutputStream outputStream;
+	int packetno = 0;
 
 	
 	@Override
@@ -78,9 +79,11 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		try {
 			int readSize = inputStream.read(readData);
 			if (readSize >= 0) {
+				
 				Packet receivedPacket = networkLayer.Receive();
-				if (receivedPacket != null) {
+				if (packetno == 0 || receivedPacket != null) {
 					// We read some bytes, send the packet
+					packetno++; 
 					if (networkLayer.Transmit(new Packet(readData)) == TransmissionResult.Failure) {
 						System.out.println("Failure transmitting");
 						return true;
