@@ -22,17 +22,17 @@ import client.*;
 public class Program {
 
 	// Change to your group number (e.g. use a student number)
-	private static int groupId = 31415927;
+	private static int groupId = 123;
 
 	// Change to your group password (doesn't matter what it is,
 	// as long as everyone in the group uses the same string)
-	private static String password = "hallohallo";
+	private static String password = "testpass";
 
 	// Change to your protocol implementation
-	private static IDataTransferProtocol protocol = new BetterTransferProtocol();
+	private static IDataTransferProtocol protocol = new NaiveTransferProtocol();
 
 	// Whether this program should send or receive
-	private static TransferMode transferMode = TransferMode.Receive;
+	private static TransferMode transferMode = TransferMode.Send;
 
 	// Challenge server address
 	private static String serverAddress = "dacs-stud03.ewi.utwente.nl";
@@ -73,12 +73,13 @@ public class Program {
 			}
 		}
 
-		System.out.print("Protocol has signaled work completion. Cleaning up... ");
+		System.out
+				.print("Protocol has signaled work completion. Cleaning up... ");
 
 		Utils.Timeout.Stop();
 
 		client.Finish();
-		System.out.println("TOT Hier al-1");
+
 		while (client.getChecksumChallenge() == -1) {
 			try {
 				client.Tick();
@@ -96,7 +97,6 @@ public class Program {
 			fileLength = new File("tobesent.dat").length();
 			input = new FileInputStream("tobesent.dat");
 		}
-		System.out.println("TOT Hier al0");
 		byte[] fileContent = new byte[(int) fileLength + 4];
 		input.read(fileContent, 4, (int) fileLength);
 
@@ -104,13 +104,13 @@ public class Program {
 		fileContent[1] = (byte) ((client.getChecksumChallenge() / 256) % 256);
 		fileContent[2] = (byte) ((client.getChecksumChallenge() / (256 * 256)) % 256);
 		fileContent[3] = (byte) ((client.getChecksumChallenge() / (256 * 256 * 256)) % 256);
-		System.out.println("TOT Hier al1");
+
 		CRC32 crc = new CRC32();
 		crc.update(fileContent);
 		int checksum = (int) crc.getValue();
 
 		client.UploadChecksum(checksum);
-		System.out.println("TOT Hier al2");
+
 		while (!client.getClosed()) {
 			try {
 				client.Tick();
