@@ -170,59 +170,59 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	private boolean ReceiveData() {
 		// Receive a data packet
 		Packet receivedPacket = networkLayer.Receive();
-		if (receivedPacket != null && receivedPacket.GetData().length != 0) {
-			
-			sentBit = receivedPacket.GetData()[0];
+		if (receivedPacket != null) {
+			if (receivedPacket.GetData().length != 0) {
+				sentBit = receivedPacket.GetData()[0];
 
-			if (sentBit != ackBit) {
+				if (sentBit != ackBit) {
 
-				ackBit = sentBit;
-				ACK = ackBit;
+					ackBit = sentBit;
+					ACK = ackBit;
 
-				byte[] data = receivedPacket.GetData();
-				networkLayer.Transmit(new Packet(new byte[] { ACK }));
-				client.Utils.Timeout.SetTimeout(1000, this, null);
-				// If the data packet was empty, we are done
-				if (data.length == 0) {
-					try {
-						// Close the file
-						outputStream.close();
-					} catch (IOException e) {
-						e.printStackTrace();
+					byte[] data = receivedPacket.GetData();
+					networkLayer.Transmit(new Packet(new byte[] { ACK }));
+					client.Utils.Timeout.SetTimeout(1000, this, null);
+					// If the data packet was empty, we are done
+					if (data.length == 0) {
+						try {
+							// Close the file
+							outputStream.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+						// Signal that work is done
+						return true;
 					}
 
-					// Signal that work is done
-					return true;
-				}
+					// Write the data to the output file
+					try {
+						outputStream.write(data, 0, data.length);
+						outputStream.flush();
+					} catch (IOException e) {
+						System.out.println("Failure writing to file: "
+								+ e.getMessage());
+						return true;
+					}
 
-				// Write the data to the output file
+				} else {
+					client.Utils.Timeout.SetTimeout(1000, this, null);
+				}
+			}
+			if (receivedPacket.GetData().length == 0) {
 				try {
-					outputStream.write(data, 0, data.length);
-					outputStream.flush();
+					// Close the file
+					outputStream.close();
 				} catch (IOException e) {
-					System.out.println("Failure writing to file: "
-							+ e.getMessage());
-					return true;
+					e.printStackTrace();
 				}
-				
-			}else{
-				client.Utils.Timeout.SetTimeout(1000, this, null);
-			}
-		}
-		
-		if (receivedPacket.GetData().length == 0) {
-			try {
-				// Close the file
-				outputStream.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+
+				// Signal that work is done
+				return true;
 			}
 
-			// Signal that work is done
-			return true;
 		}
 
-		
 		return false;
 	}
 
