@@ -1,6 +1,5 @@
 package protocol;
 
-
 import java.io.*;
 import java.nio.file.Paths;
 
@@ -16,26 +15,28 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	int packetno = 0;
 	private byte ACK;
 
-	
+	private byte sentBit = 1;
+	private byte ackBit = 1;
+
+	private Packet currentPacket;
+
 	@Override
 	public void TimeoutElapsed(Object tag) {
-		if(tag.equals("ACKWait")){
-			networkLayer.Transmit(new Packet(new byte[] {ACK}));
+		if (transferMode == TransferMode.Send) {
+			networkLayer.Transmit(currentPacket);
+		} else {
+			networkLayer.Transmit(new Packet(new byte[] { ACK }));
 		}
-		if(tag.equals("PacketWait")){
-			packetno = 0;
-			SendData();
-		}
-		
+
+		client.Utils.Timeout.SetTimeout(1000, this, null);
+
 	}
 
-	
 	@Override
 	public void SetNetworkLayerAPI(INetworkLayerAPI networkLayer) {
 		this.networkLayer = networkLayer;
 	}
 
-	
 	@Override
 	public void Initialize(TransferMode transferMode) {
 		this.transferMode = transferMode;
@@ -60,9 +61,10 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 				throw new IllegalStateException("File could not be created");
 			}
 		}
+
+		client.Utils.Timeout.SetTimeout(1000, this, null);
 	}
 
-	
 	@Override
 	public boolean Tick() {
 		if (this.transferMode == TransferMode.Send) {
@@ -74,7 +76,6 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		}
 	}
 
-	
 	/**
 	 * Handles sending of data from the input file
 	 * 
@@ -82,57 +83,82 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	 */
 	private boolean SendData() {
 		Packet receivedPacket = networkLayer.Receive();
-		client.Utils.Timeout.SetTimeout(1000, this, "ACKWait");
-		if(packetno == 0 || receivedPacket != null){
-			packetno++;
+		if (receivedPacket != null) {
+			ackBit = receivedPacket.GetData()[0];
+		}
 		
-		// Max packet size is 1024
-		byte[] readData = new byte[1024];
-		
-		try {
-			int readSize = inputStream.read(readData);
-			if (readSize >= 0) {
-				if (networkLayer.Transmit(new Packet(readData)) == TransmissionResult.Failure) {
-					System.out.println("Failure transmitting");
+		if (sentBit == ackBit) {
+
+			try {
+				// Max packet size is 1024
+				byte[] readData = new byte[1023];
+				byte[] sendData = new byte[1024];
+
+				int readSize = inputStream.read(readData);
+
+				if (readSize >= 0) {
+
+					if (sentBit == (byte)0){
+						sentBit = 1;
+					}else {
+						sentBit = 0;
+					}
+					
+					sendData[0] = sentBit;
+
+					for (int i = 0; i < readData.length; i++) {
+						sendData[i + 1] = readData[i];
+					}
+
+					currentPacket = new Packet(readData);
+
+					if (networkLayer.Transmit(currentPacket) == TransmissionResult.Failure) {
+						System.out.println("Failure transmitting");
+						return true;
+					}
+					
+					// Print how far along we are
+					bytesSent += readSize;
+
+					// Get the file size
+					File file = new File(Paths.get("").toAbsolutePath()
+							+ "/tobesent.dat");
+
+					// Print the percentage of file transmitted
+					System.out.println("Sent: "
+							+ (int) (bytesSent * 100 / (double) file.length())
+							+ "%");
+
+				} else {
+					// readSize == -1 means End-Of-File
+					try {
+						// Send empty packet, to signal transmission end. Send
+						// it a
+						// bunch of times to make sure it arrives
+						networkLayer.Transmit(new Packet(new byte[] {}));
+						networkLayer.Transmit(new Packet(new byte[] {}));
+						networkLayer.Transmit(new Packet(new byte[] {}));
+						networkLayer.Transmit(new Packet(new byte[] {}));
+						networkLayer.Transmit(new Packet(new byte[] {}));
+
+						// Close the file
+						inputStream.close();
+
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
+					// Return true to signal work done
 					return true;
 				}
-			} else {
-				// readSize == -1 means End-Of-File
-				try {
-					// Send empty packet, to signal transmission end. Send it a
-					// bunch of times to make sure it arrives
-					networkLayer.Transmit(new Packet(new byte[] {}));
-					networkLayer.Transmit(new Packet(new byte[] {}));
-					networkLayer.Transmit(new Packet(new byte[] {}));
-					networkLayer.Transmit(new Packet(new byte[] {}));
-					networkLayer.Transmit(new Packet(new byte[] {}));
-		
-					// Close the file
-					inputStream.close();
-	
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+
 				
-				// Return true to signal work done
+
+			} catch (IOException e) {
+				// We encountered an error while reading the file. Stop work.
+				System.out.println("Error reading the file: " + e.getMessage());
 				return true;
 			}
-	
-			// Print how far along we are
-			bytesSent += readSize;
-	
-			// Get the file size
-			File file = new File(Paths.get("").toAbsolutePath()
-					+ "/tobesent.dat");
-	
-			// Print the percentage of file transmitted
-			System.out.println("Sent: "+ (int) (bytesSent * 100 / (double) file.length()) + "%");
-	
-		} catch (IOException e) {
-			// We encountered an error while reading the file. Stop work.
-			System.out.println("Error reading the file: " + e.getMessage());
-			return true;
-		}
 		}
 		// Signal that work is not completed yet
 		return false;
@@ -145,20 +171,15 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	 */
 	private boolean ReceiveData() {
 		// Receive a data packet
-		ACK = 000;
 		Packet receivedPacket = networkLayer.Receive();
-		if(packetno != 0){
-			client.Utils.Timeout.SetTimeout(1000, this, "PacketWait");
-		}
+	
 		if (receivedPacket != null) {
-			if(ACK == 000){
-				ACK = 001;
-			}
-			else{
-				ACK = 000;
-			}
+			
+			ackBit = sentBit;
+			ACK = ackBit;
+			
 			byte[] data = receivedPacket.GetData();
-			networkLayer.Transmit(new Packet(new byte[] {ACK}));
+			networkLayer.Transmit(new Packet(new byte[] { ACK }));
 
 			// If the data packet was empty, we are done
 			if (data.length == 0) {
