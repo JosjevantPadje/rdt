@@ -74,57 +74,56 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 
 		// Max packet size is 1024
 		byte[] readData = new byte[1024];
-		networkLayer.Transmit(new Packet(new byte[] {}));
-		Packet receivedPacket = networkLayer.Receive();
-		if (receivedPacket != null) {
-			try {
-				int readSize = inputStream.read(readData);
-	
-				if (readSize >= 0) {
+		
+		try {
+			int readSize = inputStream.read(readData);
+			if (readSize >= 0) {
+				Packet receivedPacket = networkLayer.Receive();
+				if (receivedPacket != null) {
 					// We read some bytes, send the packet
 					if (networkLayer.Transmit(new Packet(readData)) == TransmissionResult.Failure) {
 						System.out.println("Failure transmitting");
 						return true;
 					}
-				} else {
-					// readSize == -1 means End-Of-File
-					try {
-						// Send empty packet, to signal transmission end. Send it a
-						// bunch of times to make sure it arrives
-						networkLayer.Transmit(new Packet(new byte[] {}));
-//						networkLayer.Transmit(new Packet(new byte[] {}));
-//						networkLayer.Transmit(new Packet(new byte[] {}));
-//						networkLayer.Transmit(new Packet(new byte[] {}));
-//						networkLayer.Transmit(new Packet(new byte[] {}));
-	
-						// Close the file
-						inputStream.close();
-	
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					
-					// Return true to signal work done
-					return true;
 				}
+			} else {
+				// readSize == -1 means End-Of-File
+				try {
+					// Send empty packet, to signal transmission end. Send it a
+					// bunch of times to make sure it arrives
+					networkLayer.Transmit(new Packet(new byte[] {}));
+					networkLayer.Transmit(new Packet(new byte[] {}));
+					networkLayer.Transmit(new Packet(new byte[] {}));
+					networkLayer.Transmit(new Packet(new byte[] {}));
+					networkLayer.Transmit(new Packet(new byte[] {}));
+		
+					// Close the file
+					inputStream.close();
 	
-				// Print how far along we are
-				bytesSent += readSize;
-	
-				// Get the file size
-				File file = new File(Paths.get("").toAbsolutePath()
-						+ "/tobesent.dat");
-	
-				// Print the percentage of file transmitted
-				System.out.println("Sent: "
-						+ (int) (bytesSent * 100 / (double) file.length()) + "%");
-	
-			} catch (IOException e) {
-				// We encountered an error while reading the file. Stop work.
-				System.out.println("Error reading the file: " + e.getMessage());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+				// Return true to signal work done
 				return true;
 			}
+	
+			// Print how far along we are
+			bytesSent += readSize;
+	
+			// Get the file size
+			File file = new File(Paths.get("").toAbsolutePath()
+					+ "/tobesent.dat");
+	
+			// Print the percentage of file transmitted
+			System.out.println("Sent: "+ (int) (bytesSent * 100 / (double) file.length()) + "%");
+	
+		} catch (IOException e) {
+			// We encountered an error while reading the file. Stop work.
+			System.out.println("Error reading the file: " + e.getMessage());
+			return true;
 		}
+		
 		// Signal that work is not completed yet
 		return false;
 	}
