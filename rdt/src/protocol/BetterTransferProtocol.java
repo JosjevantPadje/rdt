@@ -84,10 +84,8 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 				if (packetno == 0 || receivedPacket != null) {
 					// We read some bytes, send the packet
 					packetno++; 
-					System.out.println("Something works...");
 					if (networkLayer.Transmit(new Packet(readData)) == TransmissionResult.Failure) {
 						System.out.println("Failure transmitting");
-						
 						return true;
 					}
 				}
