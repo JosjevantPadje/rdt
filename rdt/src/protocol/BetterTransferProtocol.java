@@ -170,19 +170,8 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	private boolean ReceiveData() {
 		// Receive a data packet
 		Packet receivedPacket = networkLayer.Receive();
-		if (receivedPacket != null) {
-			sentBit = receivedPacket.GetData()[0];
-
-			if (sentBit != ackBit) {
-
-				ackBit = sentBit;
-				ACK = ackBit;
-
-				byte[] data = receivedPacket.GetData();
-				networkLayer.Transmit(new Packet(new byte[] { ACK }));
-				client.Utils.Timeout.SetTimeout(1000, this, null);
-				// If the data packet was empty, we are done
-				if (data.length == 0) {
+		if (receivedPacket != null ) {
+			if (receivedPacket.GetData().length == 0) {
 					try {
 						// Close the file
 						outputStream.close();
@@ -194,6 +183,18 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 					return true;
 				}
 
+			sentBit = receivedPacket.GetData()[0];
+
+			if (sentBit != ackBit) {
+
+				ackBit = sentBit;
+				ACK = ackBit;
+
+				byte[] data = receivedPacket.GetData();
+				networkLayer.Transmit(new Packet(new byte[] { ACK }));
+				client.Utils.Timeout.SetTimeout(1000, this, null);
+				// If the data packet was empty, we are done
+				
 				// Write the data to the output file
 				try {
 					outputStream.write(data, 0, data.length);
@@ -203,6 +204,9 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 							+ e.getMessage());
 					return true;
 				}
+				
+			}else{
+				client.Utils.Timeout.SetTimeout(1000, this, null);
 			}
 		}
 		return false;
