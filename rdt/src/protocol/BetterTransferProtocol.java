@@ -141,7 +141,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		Packet receivedPacket = networkLayer.Receive();
 		if (receivedPacket != null) {
 			byte[] data = receivedPacket.GetData();
-			networkLayer.Transmit(new Packet(new byte[] {}));
+			networkLayer.Transmit(new Packet(new byte[] {113}));
 
 			// If the data packet was empty, we are done
 			if (data.length == 0) {
