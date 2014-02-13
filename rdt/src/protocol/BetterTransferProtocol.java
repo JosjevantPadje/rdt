@@ -74,6 +74,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 
 		// Max packet size is 1024
 		byte[] readData = new byte[1024];
+		networkLayer.Transmit(new Packet(new byte[] {}));
 		Packet receivedPacket = networkLayer.Receive();
 		if (receivedPacket != null) {
 			try {
