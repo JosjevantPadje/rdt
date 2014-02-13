@@ -170,6 +170,8 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	private boolean ReceiveData() {
 		// Receive a data packet
 		Packet receivedPacket = networkLayer.Receive();
+		sentBit = receivedPacket.GetData()[0];
+		
 		if (sentBit != ackBit) {
 
 			if (receivedPacket != null) {
@@ -179,7 +181,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 
 				byte[] data = receivedPacket.GetData();
 				networkLayer.Transmit(new Packet(new byte[] { ACK }));
-
+				client.Utils.Timeout.SetTimeout(1000, this, null);
 				// If the data packet was empty, we are done
 				if (data.length == 0) {
 					try {
