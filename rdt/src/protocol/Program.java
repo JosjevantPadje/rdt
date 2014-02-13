@@ -118,7 +118,7 @@ public class Program {
 			} catch (InterruptedException e) {
 			}
 		}
-
+		System.out.println("TOT Hier al!! AAAH");
 		if (client.getSuccess()) {
 			System.out
 					.println("Done. File was transferred successfully! Check your performance on the web interface.");
