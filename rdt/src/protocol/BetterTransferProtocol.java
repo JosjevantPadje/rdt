@@ -72,22 +72,19 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	 * @return whether work has been completed
 	 */
 	private boolean SendData() {
-
+		Packet receivedPacket = networkLayer.Receive();
+		if(packetno == 0 || receivedPacket != null){
+			packetno++;
+		
 		// Max packet size is 1024
 		byte[] readData = new byte[1024];
 		
 		try {
 			int readSize = inputStream.read(readData);
 			if (readSize >= 0) {
-				
-				Packet receivedPacket = networkLayer.Receive();
-				if (packetno == 0 || receivedPacket != null) {
-					// We read some bytes, send the packet
-					packetno++; 
-					if (networkLayer.Transmit(new Packet(readData)) == TransmissionResult.Failure) {
-						System.out.println("Failure transmitting");
-						return true;
-					}
+				if (networkLayer.Transmit(new Packet(readData)) == TransmissionResult.Failure) {
+					System.out.println("Failure transmitting");
+					return true;
 				}
 			} else {
 				// readSize == -1 means End-Of-File
@@ -126,7 +123,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 			System.out.println("Error reading the file: " + e.getMessage());
 			return true;
 		}
-		
+		}
 		// Signal that work is not completed yet
 		return false;
 	}
@@ -141,6 +138,12 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		byte ACK = 000;
 		Packet receivedPacket = networkLayer.Receive();
 		if (receivedPacket != null) {
+			if(ACK == 000){
+				ACK = 001;
+			}
+			else{
+				ACK = 000;
+			}
 			byte[] data = receivedPacket.GetData();
 			networkLayer.Transmit(new Packet(new byte[] {ACK}));
 
