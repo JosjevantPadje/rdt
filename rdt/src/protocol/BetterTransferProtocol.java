@@ -22,6 +22,10 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		if(tag.equals("ACKWait")){
 			networkLayer.Transmit(new Packet(new byte[] {ACK}));
 		}
+		if(tag.equals("PacketWait")){
+			packetno = 0;
+			SendData();
+		}
 		
 	}
 
@@ -143,6 +147,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		// Receive a data packet
 		ACK = 000;
 		Packet receivedPacket = networkLayer.Receive();
+		client.Utils.Timeout.SetTimeout(1000, this, "PacketWait");
 		if (receivedPacket != null) {
 			if(ACK == 000){
 				ACK = 001;
