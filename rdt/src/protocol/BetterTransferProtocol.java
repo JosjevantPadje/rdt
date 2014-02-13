@@ -14,10 +14,15 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	FileInputStream inputStream;
 	FileOutputStream outputStream;
 	int packetno = 0;
+	private byte ACK;
 
 	
 	@Override
 	public void TimeoutElapsed(Object tag) {
+		if(tag.equals("ACKWait")){
+			networkLayer.Transmit(new Packet(new byte[] {ACK}));
+		}
+		
 	}
 
 	
@@ -73,6 +78,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	 */
 	private boolean SendData() {
 		Packet receivedPacket = networkLayer.Receive();
+		client.Utils.Timeout.SetTimeout(1000, this, "ACKWait");
 		if(packetno == 0 || receivedPacket != null){
 			packetno++;
 		
@@ -135,7 +141,7 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 	 */
 	private boolean ReceiveData() {
 		// Receive a data packet
-		byte ACK = 000;
+		ACK = 000;
 		Packet receivedPacket = networkLayer.Receive();
 		if (receivedPacket != null) {
 			if(ACK == 000){
