@@ -147,7 +147,9 @@ public class BetterTransferProtocol implements IDataTransferProtocol {
 		// Receive a data packet
 		ACK = 000;
 		Packet receivedPacket = networkLayer.Receive();
-		client.Utils.Timeout.SetTimeout(1000, this, "PacketWait");
+		if(packetno != 0){
+			client.Utils.Timeout.SetTimeout(1000, this, "PacketWait");
+		}
 		if (receivedPacket != null) {
 			if(ACK == 000){
 				ACK = 001;
